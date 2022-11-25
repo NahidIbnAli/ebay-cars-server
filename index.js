@@ -17,9 +17,27 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
-app.get("/", async (req, res) => {
-  res.send("eBay Cars server is running");
-});
+async function run() {
+  try {
+    const advertisedItemCollection = client
+      .db("eBayCars")
+      .collection("advertisedItems");
+
+    app.get("/", async (req, res) => {
+      res.send("eBay Cars server is running");
+    });
+
+    app.get("/advertisedItems", async (req, res) => {
+      const query = {};
+      const advertisedItems = await advertisedItemCollection
+        .find(query)
+        .toArray();
+      res.send(advertisedItems);
+    });
+  } finally {
+  }
+}
+run().catch((error) => console.error(error));
 
 app.listen(port, () => {
   console.log(`eBay cars server is running on port : ${port}`);
