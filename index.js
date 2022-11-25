@@ -29,6 +29,7 @@ async function run() {
       .db("eBayCars")
       .collection("testimonials");
     const blogCollection = client.db("eBayCars").collection("blogs");
+    const userCollection = client.db("eBayCars").collection("users");
 
     app.get("/", async (req, res) => {
       res.send("eBay Cars server is running");
@@ -58,6 +59,30 @@ async function run() {
       const query = {};
       const blogs = await blogCollection.find(query).toArray();
       res.send(blogs);
+    });
+
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: req.body.email };
+      const storedUser = await userCollection.findOne(query);
+      if (!storedUser) {
+        const result = await userCollection.insertOne(user);
+        res.send(result);
+      }
+      return res.send({ message: "this email already exists" });
+    });
+
+    app.get("/jwt", async (req, res) => {
+      const email = req.query.email;
+      const query = { email: email };
+      const user = await userCollection.findOne(query);
+      if (user) {
+        const token = jwt.sign({ email }, process.env.ACCESS_TOKEN, {
+          expiresIn: "1h",
+        });
+        return res.send({ accessToken: token });
+      }
+      res.status(403).send({ accessToken: "" });
     });
   } finally {
   }
