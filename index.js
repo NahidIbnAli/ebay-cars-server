@@ -28,6 +28,7 @@ async function run() {
     const testimonialCollection = client
       .db("eBayCars")
       .collection("testimonials");
+    const blogCollection = client.db("eBayCars").collection("blogs");
 
     app.get("/", async (req, res) => {
       res.send("eBay Cars server is running");
@@ -51,6 +52,12 @@ async function run() {
       const query = {};
       const testimonials = await testimonialCollection.find(query).toArray();
       res.send(testimonials);
+    });
+
+    app.get("/blogs", async (req, res) => {
+      const query = {};
+      const blogs = await blogCollection.find(query).toArray();
+      res.send(blogs);
     });
   } finally {
   }
