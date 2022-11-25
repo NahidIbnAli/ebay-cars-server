@@ -22,6 +22,9 @@ async function run() {
     const advertisedItemCollection = client
       .db("eBayCars")
       .collection("advertisedItems");
+    const carCategoryCollection = client
+      .db("eBayCars")
+      .collection("carCategories");
 
     app.get("/", async (req, res) => {
       res.send("eBay Cars server is running");
@@ -33,6 +36,12 @@ async function run() {
         .find(query)
         .toArray();
       res.send(advertisedItems);
+    });
+
+    app.get("/carCategories", async (req, res) => {
+      const query = {};
+      const carCategories = await carCategoryCollection.find(query).toArray();
+      res.send(carCategories);
     });
   } finally {
   }
