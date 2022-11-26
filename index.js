@@ -23,6 +23,7 @@ async function run() {
     const advertisedItemCollection = client
       .db("eBayCars")
       .collection("advertisedItems");
+    const bookingCollection = client.db("eBayCars").collection("bookings");
     const carCategoryCollection = client
       .db("eBayCars")
       .collection("carCategories");
@@ -42,6 +43,22 @@ async function run() {
         .find(query)
         .toArray();
       res.send(advertisedItems);
+    });
+
+    app.post("/bookings", async (req, res) => {
+      const booking = req.body;
+      const query = {
+        name: booking.name,
+        price: booking.price,
+        email: booking.email,
+      };
+      const alreadyBooked = await bookingCollection.find(query).toArray();
+      if (alreadyBooked.length) {
+        const message = `You have already booked ${booking.name}`;
+        return res.send({ acknowledged: false, message });
+      }
+      const result = await bookingCollection.insertOne(booking);
+      res.send(result);
     });
 
     app.get("/carCategories", async (req, res) => {
