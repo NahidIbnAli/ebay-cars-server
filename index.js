@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 const port = process.env.PORT || 5000;
 
@@ -67,9 +68,9 @@ async function run() {
       const storedUser = await userCollection.findOne(query);
       if (!storedUser) {
         const result = await userCollection.insertOne(user);
-        res.send(result);
+        return res.send(result);
       }
-      return res.send({ message: "this email already exists" });
+      res.send({ message: "this email already exists" });
     });
 
     app.get("/jwt", async (req, res) => {
