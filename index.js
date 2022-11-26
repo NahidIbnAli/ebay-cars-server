@@ -50,6 +50,15 @@ async function run() {
       res.send(carCategories);
     });
 
+    app.get("/category/:name", async (req, res) => {
+      const categoryName = req.params.name;
+      const query = { category: categoryName };
+      const allAdvertisedItems = await advertisedItemCollection
+        .find(query)
+        .toArray();
+      res.send(allAdvertisedItems);
+    });
+
     app.get("/testimonials", async (req, res) => {
       const query = {};
       const testimonials = await testimonialCollection.find(query).toArray();
