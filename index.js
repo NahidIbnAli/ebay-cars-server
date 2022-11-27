@@ -58,6 +58,16 @@ async function run() {
       next();
     };
 
+    const verifySeller = async (req, res, next) => {
+      const decodedEmail = req.decoded.email;
+      const query = { email: decodedEmail };
+      const user = await userCollection.findOne(query);
+      if (user?.role !== "Seller") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     app.get("/", async (req, res) => {
       res.send("eBay Cars server is running");
     });
@@ -70,7 +80,7 @@ async function run() {
       res.send(advertisedItems);
     });
 
-    app.post("/advertisedItems", verifyJWT, async (req, res) => {
+    app.post("/advertisedItems", verifyJWT, verifySeller, async (req, res) => {
       const advertisedItem = req.body;
       const result = await advertisedItemCollection.insertOne(advertisedItem);
       res.send(result);
@@ -170,10 +180,8 @@ async function run() {
     app.delete("/users/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
-      const user = await userCollection.findOne(query);
-      const userName = user.name;
       const result = await userCollection.deleteOne(query);
-      res.send({ result, userName });
+      res.send(result);
     });
 
     app.get("/jwt", async (req, res) => {
