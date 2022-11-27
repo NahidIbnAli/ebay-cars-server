@@ -82,6 +82,17 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/bookings", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      const decodedEmail = req.decoded.email;
+      const query = { email: email };
+      if (email !== decodedEmail) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      const booked = await bookingCollection.find(query).toArray();
+      res.send(booked);
+    });
+
     app.get("/carCategories", async (req, res) => {
       const query = {};
       const carCategories = await carCategoryCollection.find(query).toArray();
