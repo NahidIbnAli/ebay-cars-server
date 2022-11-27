@@ -18,6 +18,21 @@ const client = new MongoClient(uri, {
   serverApi: ServerApiVersion.v1,
 });
 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  if (!authHeader) {
+    return res.status(401).send({ message: "unauthorized access" });
+  }
+  const token = authHeader.split(" ")[1];
+  jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+}
+
 async function run() {
   try {
     const advertisedItemCollection = client
@@ -43,6 +58,12 @@ async function run() {
         .find(query)
         .toArray();
       res.send(advertisedItems);
+    });
+
+    app.post("/advertisedItems", verifyJWT, async (req, res) => {
+      const advertisedItem = req.body;
+      const result = await advertisedItemCollection.insertOne(advertisedItem);
+      res.send(result);
     });
 
     app.post("/bookings", async (req, res) => {
@@ -96,7 +117,14 @@ async function run() {
         const result = await userCollection.insertOne(user);
         return res.send(result);
       }
-      res.send({ message: "this email already exists" });
+      res.send({ message: "email already exists" });
+    });
+
+    app.get("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isAdmin: user?.role === "admin" });
     });
 
     app.get("/jwt", async (req, res) => {
