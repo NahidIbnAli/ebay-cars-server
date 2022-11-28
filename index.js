@@ -91,7 +91,7 @@ async function run() {
       res.send(result);
     });
 
-    app.delete("/products", verifyJWT, verifySeller, async (req, res) => {
+    app.delete("/products/:id", verifyJWT, verifySeller, async (req, res) => {
       const id = req.params.id;
       const query = { _id: ObjectId(id) };
       const result = await productCollection.deleteOne(query);
@@ -205,13 +205,6 @@ async function run() {
       res.send(result);
     });
 
-    // app.get("/users/verified/:email", async (req, res) => {
-    //   const email = req.params.email;
-    //   const query = { email };
-    //   const user = await userCollection.findOne(query);
-    //   res.send({ isVerified: user?.verified === true });
-    // });
-
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: req.body.email };
@@ -224,7 +217,7 @@ async function run() {
     });
 
     app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
-      const query = {};
+      const query = { role: req.query.role };
       const users = await userCollection.find(query).toArray();
       res.send(users);
     });
