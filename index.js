@@ -36,6 +36,9 @@ function verifyJWT(req, res, next) {
 async function run() {
   try {
     const productCollection = client.db("eBayCars").collection("products");
+    const advertisedItemCollection = client
+      .db("eBayCars")
+      .collection("advertisedItems");
     const bookingCollection = client.db("eBayCars").collection("bookings");
     const carCategoryCollection = client
       .db("eBayCars")
@@ -71,10 +74,13 @@ async function run() {
     });
 
     app.get("/products", async (req, res) => {
-      let query = {};
-      if (req.query.email) {
-        query = { email: req.query.email };
-      }
+      const query = {};
+      const products = await productCollection.find(query).toArray();
+      res.send(products);
+    });
+
+    app.get("/products", verifyJWT, verifySeller, async (req, res) => {
+      const query = { email: req.query.email };
       const products = await productCollection.find(query).toArray();
       res.send(products);
     });
@@ -83,6 +89,41 @@ async function run() {
       const product = req.body;
       const result = await productCollection.insertOne(product);
       res.send(result);
+    });
+
+    app.delete("/products", verifyJWT, verifySeller, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: ObjectId(id) };
+      const result = await productCollection.deleteOne(query);
+      res.send(result);
+    });
+
+    app.post("/advertisedItems", verifyJWT, verifySeller, async (req, res) => {
+      const id = req.query.id;
+      const productQuery = { _id: ObjectId(id) };
+      const product = await productCollection.findOne(productQuery);
+      const query = {
+        name: product.name,
+        price: product.price,
+        email: product.email,
+      };
+      const storedAdvertisedItems = await advertisedItemCollection
+        .find(query)
+        .toArray();
+      if (storedAdvertisedItems.length) {
+        const message = `You have already added ${product.name} to advertised items`;
+        return res.send({ acknowledged: false, message });
+      }
+      const result = advertisedItemCollection.insertOne(product);
+      res.send(result);
+    });
+
+    app.get("/advertisedItems", async (req, res) => {
+      const query = {};
+      const advertisedItems = await advertisedItemCollection
+        .find(query)
+        .toArray();
+      res.send(advertisedItems);
     });
 
     app.post("/bookings", async (req, res) => {
@@ -164,12 +205,12 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/users/verified/:email", async (req, res) => {
-      const email = req.params.email;
-      const query = { email };
-      const user = await userCollection.findOne(query);
-      res.send({ isVerified: user?.verified === true });
-    });
+    // app.get("/users/verified/:email", async (req, res) => {
+    //   const email = req.params.email;
+    //   const query = { email };
+    //   const user = await userCollection.findOne(query);
+    //   res.send({ isVerified: user?.verified === true });
+    // });
 
     app.post("/users", async (req, res) => {
       const user = req.body;
