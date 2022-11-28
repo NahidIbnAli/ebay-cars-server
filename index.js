@@ -73,14 +73,9 @@ async function run() {
       res.send("eBay Cars server is running");
     });
 
-    app.get("/products", async (req, res) => {
-      const query = {};
-      const products = await productCollection.find(query).toArray();
-      res.send(products);
-    });
-
     app.get("/products", verifyJWT, verifySeller, async (req, res) => {
-      const query = { email: req.query.email };
+      const email = req.query.email;
+      const query = { email };
       const products = await productCollection.find(query).toArray();
       res.send(products);
     });
@@ -203,6 +198,13 @@ async function run() {
       const options = { upsert: true };
       const result = await userCollection.updateOne(filter, updateDoc, options);
       res.send(result);
+    });
+
+    app.get("/users/verify/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isVerified: user?.verified === true });
     });
 
     app.post("/users", async (req, res) => {
