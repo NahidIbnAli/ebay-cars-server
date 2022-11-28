@@ -35,9 +35,7 @@ function verifyJWT(req, res, next) {
 
 async function run() {
   try {
-    const advertisedItemCollection = client
-      .db("eBayCars")
-      .collection("advertisedItems");
+    const productCollection = client.db("eBayCars").collection("products");
     const bookingCollection = client.db("eBayCars").collection("bookings");
     const carCategoryCollection = client
       .db("eBayCars")
@@ -72,17 +70,18 @@ async function run() {
       res.send("eBay Cars server is running");
     });
 
-    app.get("/advertisedItems", async (req, res) => {
-      const query = {};
-      const advertisedItems = await advertisedItemCollection
-        .find(query)
-        .toArray();
-      res.send(advertisedItems);
+    app.get("/products", async (req, res) => {
+      let query = {};
+      if (req.query.email) {
+        query = { email: req.query.email };
+      }
+      const products = await productCollection.find(query).toArray();
+      res.send(products);
     });
 
-    app.post("/advertisedItems", verifyJWT, verifySeller, async (req, res) => {
-      const advertisedItem = req.body;
-      const result = await advertisedItemCollection.insertOne(advertisedItem);
+    app.post("/products", verifyJWT, verifySeller, async (req, res) => {
+      const product = req.body;
+      const result = await productCollection.insertOne(product);
       res.send(result);
     });
 
@@ -122,10 +121,8 @@ async function run() {
     app.get("/category/:name", async (req, res) => {
       const categoryName = req.params.name;
       const query = { category: categoryName };
-      const allAdvertisedItems = await advertisedItemCollection
-        .find(query)
-        .toArray();
-      res.send(allAdvertisedItems);
+      const allProudcts = await productCollection.find(query).toArray();
+      res.send(allProudcts);
     });
 
     app.get("/testimonials", async (req, res) => {
@@ -138,6 +135,40 @@ async function run() {
       const query = {};
       const blogs = await blogCollection.find(query).toArray();
       res.send(blogs);
+    });
+
+    app.get("/users/seller/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isSeller: user?.role === "Seller" });
+    });
+
+    app.get("/users/buyer/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isBuyer: user?.role === "Buyer" });
+    });
+
+    app.put("/users/verify/:id", async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          verified: true,
+        },
+      };
+      const options = { upsert: true };
+      const result = await userCollection.updateOne(filter, updateDoc, options);
+      res.send(result);
+    });
+
+    app.get("/users/verified/:email", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await userCollection.findOne(query);
+      res.send({ isVerified: user?.verified === true });
     });
 
     app.post("/users", async (req, res) => {
