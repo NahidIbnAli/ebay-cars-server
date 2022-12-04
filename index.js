@@ -3,6 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const port = process.env.PORT || 5000;
 
 const app = express();
@@ -48,6 +49,7 @@ async function run() {
       .collection("testimonials");
     const blogCollection = client.db("eBayCars").collection("blogs");
     const userCollection = client.db("eBayCars").collection("users");
+    const paymentCollection = client.db("eBayCars").collection("payments");
 
     const verifyAdmin = async (req, res, next) => {
       const decodedEmail = req.decoded.email;
@@ -249,6 +251,55 @@ async function run() {
       const query = { _id: ObjectId(id) };
       const result = await userCollection.deleteOne(query);
       res.send(result);
+    });
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const booking = req.body;
+      const price = booking.price;
+      const amount = price * 100;
+
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+
+    app.post("/payments", async (req, res) => {
+      const payment = req.body;
+      const result = await paymentCollection.insertOne(payment);
+      const id = payment.bookingId;
+      const productId = payment.productId;
+      const filter = { _id: ObjectId(id) };
+      const options = { upsert: true };
+      const updatedDoc = {
+        $set: {
+          paid: true,
+          transactionId: payment.transactionId,
+        },
+      };
+      const updatedResult = await bookingCollection.updateOne(
+        filter,
+        updatedDoc,
+        options
+      );
+      if (updatedResult.modifiedCount > 0) {
+        const query = { _id: ObjectId(productId) };
+        const productResult = await productCollection.deleteOne(query);
+        const advertisedItemResult = await advertisedItemCollection.deleteOne(
+          query
+        );
+        if (
+          productResult.deletedCount > 0 &&
+          advertisedItemResult.deletedCount > 0
+        ) {
+          res.send(result);
+        }
+      }
     });
 
     app.get("/jwt", async (req, res) => {
