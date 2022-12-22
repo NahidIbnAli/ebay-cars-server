@@ -75,6 +75,12 @@ async function run() {
       res.send("eBay Cars server is running");
     });
 
+    app.get("/cars", async (req, res) => {
+      const query = {};
+      const cars = await productCollection.find(query).toArray();
+      res.send(cars);
+    });
+
     app.get("/products", verifyJWT, verifySeller, async (req, res) => {
       const email = req.query.email;
       const query = { email };
